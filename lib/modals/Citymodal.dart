@@ -1,9 +1,8 @@
 import 'dart:convert';
-
-CountryModal countryModalFromJson(String str) => CountryModal.fromJson(json.decode(str));
-String countryModalToJson(CountryModal data) => json.encode(data.toJson());
-class CountryModal {
-  CountryModal({
+Citymodal citymodalFromJson(String str) => Citymodal.fromJson(json.decode(str));
+String citymodalToJson(Citymodal data) => json.encode(data.toJson());
+class Citymodal {
+  Citymodal({
       bool? success, 
       String? message, 
       List<Data>? data, 
@@ -14,7 +13,7 @@ class CountryModal {
     _responseTime = responseTime;
 }
 
-  CountryModal.fromJson(dynamic json) {
+  Citymodal.fromJson(dynamic json) {
     _success = json['success'];
     _message = json['message'];
     if (json['data'] != null) {
@@ -29,11 +28,11 @@ class CountryModal {
   String? _message;
   List<Data>? _data;
   String? _responseTime;
-CountryModal copyWith({  bool? success,
+Citymodal copyWith({  bool? success,
   String? message,
   List<Data>? data,
   String? responseTime,
-}) => CountryModal(  success: success ?? _success,
+}) => Citymodal(  success: success ?? _success,
   message: message ?? _message,
   data: data ?? _data,
   responseTime: responseTime ?? _responseTime,
@@ -56,8 +55,7 @@ CountryModal copyWith({  bool? success,
 
 }
 
-/// id : 1
-/// name : "Afghanistan"
+
 
 Data dataFromJson(String str) => Data.fromJson(json.decode(str));
 String dataToJson(Data data) => json.encode(data.toJson());
@@ -89,5 +87,4 @@ Data copyWith({  num? id,
     map['name'] = _name;
     return map;
   }
-
 }

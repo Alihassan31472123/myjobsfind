@@ -1,48 +1,65 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:http/http.dart';
+import 'package:http/http.dart' as http;
 import 'package:myjobsfind2/login.dart';
+import 'package:myjobsfind2/mainscreen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter/cupertino.dart';
 
-import 'mainscreen.dart';
-
-class registeration extends StatefulWidget {
-  const registeration({super.key});
+class Registeration extends StatefulWidget {
+  const Registeration({Key? key}) : super(key: key);
 
   @override
-  State<registeration> createState() => _registerationState();
+  State<Registeration> createState() => _RegisterationState();
 }
 
-class _registerationState extends State<registeration> {
+class _RegisterationState extends State<Registeration> {
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
   TextEditingController nameController = TextEditingController();
-  String nameError = '';
-  String emailError = '';
-  String passwordError = '';
-  
+
+  // Remove these error variables since they are not being used
+   String nameErrorText = '';
+    String emailErrorText = '';
+  String passwordErrorText = '';
+  bool showPassword = false;
+
+  void clearErrorMessages() {
+    setState(() {
+      emailErrorText = '';
+      passwordErrorText = '';
+       nameErrorText = '';
+
+    });
+  }
+
+  void togglePasswordVisibility() {
+    setState(() {
+      showPassword = !showPassword;
+    });
+  }
 
   void logout() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? userToken = prefs.getString('token');
 
     // Retrieve the user token
-
     if (userToken != null) {
       try {
-        Response response = await post(
-          Uri.parse(
-              'https://www.myjobsfind.com/api/logout'), // Replace with your API endpoint
+        final response = await http.post(
+          Uri.parse('https://www.myjobsfind.com/api/logout'), // Replace with your API endpoint
           headers: {'Authorization': 'Bearer $userToken'},
         );
 
         if (response.statusCode == 200) {
           prefs.remove('token'); // Clear user token from SharedPreferences
-          print('Logout successful');
-
-          
+          String successMessage = "Log out Successfully";
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(successMessage),
+     
+    ),
+  );
           // Optionally, you can navigate to the login screen here
           Navigator.push(
             context,
@@ -59,85 +76,96 @@ class _registerationState extends State<registeration> {
     }
   }
 
-  void login(
-    String email,
-    password,
-    name,
-  ) async {
-    try {
-      Response response = await post(
-          Uri.parse('https://www.myjobsfind.com/api/register'),
-          body: {
-            'name': name,
-            'email': email,
-            'password': password,
-          });
+void register(
+  String email,
+  String password,
+  String name,
+) async {
 
-      if (response.statusCode == 200) {
-        var data = jsonDecode(response.body.toString());
-        print(data['token']);
-        print(jsonDecode(response.body.toString()));
+  try {
+    final response = await http.post(
+      Uri.parse('https://www.myjobsfind.com/api/register'),
+      body: {
+        'name': name,
+        'email': email,
+        'password': password,
+      },
+    );
 
+    if (response.statusCode == 200) {
+      var data = jsonDecode(response.body.toString());
+      print(response.body);
+
+      if (data.containsKey('Token')) {
+        String token = data['Token'];
+        print('Token: $token');
         SharedPreferences prefs = await SharedPreferences.getInstance();
         prefs.setString('userName', name);
         prefs.setString('userEmail', email);
-        prefs.setString('token', data['token']);
+        prefs.setString('token', token);
+        String successMessage = "User created successfully";
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(successMessage),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 5),
+          ),
+        );
 
-        String successMessage = "User created successfully"; // You can adjust this message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(successMessage,),),
-      );
-
-        // Navigate to the next screen
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => Login()),
+          MaterialPageRoute(builder: (context) => nextscreen()),
         );
-      }  else {
-      // Registration failed, handle error
+      }
+    } else if (response.statusCode == 401) {
       var errorData = jsonDecode(response.body);
-      String errorMessage = errorData['message']; // General error message
-      Map<String, dynamic> errors = errorData['errors']; // Error details
+      Map<String, dynamic> message = errorData['message'] ?? {};
+      
+      message.forEach((field, errorList) {
+        errorList.forEach((error) {
+          print('$field error: $error');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$field $error'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        });
+      });
+    } else {
+      var errorData = jsonDecode(response.body);
+      String errorMessage = errorData['message'] ?? 'Unknown error';
+      Map<String, dynamic> errors = errorData['errors'] ?? {};
 
-      // Display general error message
       print('Registration failed: $errorMessage');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMessage,selectionColor: Colors.amber,)),
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.amber,
+        ),
       );
 
-      // Display specific error message for 'name' field
-      if (errors.containsKey('name')) {
-        String nameError = errors['name'][0]; // First error message for 'name'
-        print('Name error: $nameError');
-        
-        // Display the specific name field error message to the user
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(nameError)),
-        );
-      }
-       if (errors.containsKey('email')) {
-        String emailError = errors['email'][0]; // First error message for 'email'
-        print('Email error: $emailError');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(emailError))
-        );
-      }
-
-      // Display specific error message for 'password' field (if applicable)
-      if (errors.containsKey('password')) {
-        String passwordError = errors['password'][0]; // First error message for 'password'
-        print('Password error: $passwordError');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(passwordError)),
-        );
-      }
-
+      errors.forEach((field, errorList) {
+        errorList.forEach((error) {
+          print('$field error: $error');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$field error: $error'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        });
+      });
     }
-
-    } catch (e) {
-      print(e.toString());
-    }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('An error occurred during registration'),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -150,100 +178,104 @@ class _registerationState extends State<registeration> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  height: 50,
-                  width: 200,
-                  child: Image.asset(
-                    'images/job.png',
-                    fit: BoxFit.cover,
+                          height: 60,
+                          width: 210,
+                           decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(50),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.5),
+                    spreadRadius: 1,
+                    blurRadius: 1,
+                    offset: Offset(0, 1),
+                  ),
+                ],
+              ),
+                          child: Image.asset('images/job.png',fit: BoxFit.cover,),
+                        ),              ],
+            ),
+          ),
+          SizedBox(
+            height: 30,
+          ),
+          SingleChildScrollView(
+            child: Column(
+              children: [
+                Container(
+                  
+                  margin: EdgeInsets.only(left: 30,right: 30),
+                  child: TextField(
+                    controller: nameController,
+                    decoration: InputDecoration(
+                      hintText: 'Name',
+                      fillColor: Colors.white,
+                      filled: true,
+                       prefixIcon: Icon(Icons.person),
+                      errorText:
+                                   nameErrorText.isNotEmpty ? nameErrorText : null,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-
-          Container(
-            height: 60,
-            margin: const EdgeInsets.only(left: 25, right: 25, top: 40),
-            decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: [
-                  BoxShadow(
-                    blurRadius: 3,
-                    spreadRadius: 3,
-                    color: Colors.grey.shade200,
-                  )
-                ]),
-            child: TextField(
-              controller: nameController,
-              decoration: InputDecoration(
-                  hintText: 'Name',
-                  fillColor: Colors.white,
-                  filled: true,
-                  border: OutlineInputBorder(
-                    borderSide: BorderSide(
-                      color: Colors.grey.shade500,
-                    ),
-                    borderRadius: BorderRadius.circular(10),
-                  )),
-            ),
+          SizedBox(
+            height: 20,
           ),
-          Container(
-            height: 55,
-            margin: const EdgeInsets.only(left: 25, right: 25, top: 20),
-            decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: [
-                  BoxShadow(
-                    blurRadius: 3,
-                    spreadRadius: 3,
-                    color: Colors.grey.shade300,
-                  )
-                ]),
-            child: TextField(
-              controller: emailController,
-              decoration: InputDecoration(
-                hintText: 'Email ID',
-                fillColor: Colors.white,
-                filled: true,
-                border: OutlineInputBorder(
-                  borderSide: const BorderSide(
-                    color: Colors.grey,
+          SingleChildScrollView(
+            child: Column(
+              children: [
+                Container(
+                  margin: EdgeInsets.only(left: 30,right: 30),
+                  child: TextField(
+                    controller: emailController,
+                    decoration: InputDecoration(
+                      hintText: 'Email ID',
+                      fillColor: Colors.white,
+                      filled: true,
+                       prefixIcon: Icon(Icons.mail),
+                       errorText:
+                                   emailErrorText.isNotEmpty ? emailErrorText : null,
+                    ),
                   ),
-                  borderRadius: BorderRadius.circular(10),
                 ),
-              ),
+              ],
             ),
           ),
-          Container(
-            height: 60,
-            margin: const EdgeInsets.only(left: 25, right: 25, top: 20),
-            decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: [
-                  BoxShadow(
-                    blurRadius: 3,
-                    spreadRadius: 3,
-                    color: Colors.grey.shade200,
-                  )
-                ]),
-            child: TextField(
-              controller: passwordController,
-              decoration: InputDecoration(
-                  hintText: 'Password',
-                  fillColor: Colors.white,
-                  filled: true,
-                  border: OutlineInputBorder(
-                    borderSide: BorderSide(
-                      color: Colors.grey.shade500,
+          SizedBox(
+            height: 20,
+          ),
+          SingleChildScrollView(
+            child: Column(
+              children: [
+                Container(
+                  margin: EdgeInsets.only(left: 30,right: 30),
+                  child: TextField(
+                    controller: passwordController,
+                    obscureText: !showPassword,
+                    decoration: InputDecoration(
+                      hintText: 'Password',
+                      
+                      fillColor: Colors.white,
+                      filled: true,
+                       prefixIcon: Icon(Icons.lock),
+                    suffixIcon: IconButton(
+                          icon: Icon(
+                            showPassword ? Icons.visibility : Icons.visibility_off,
+                            color: Colors.grey,
+                          ),
+                          onPressed: togglePasswordVisibility,
+                        ),
                     ),
-                    borderRadius: BorderRadius.circular(10),
-                  )),
+                    
+                  ),
+                ),
+              ],
             ),
           ),
           Padding(
-            padding: const EdgeInsets.only(right: 10, top: 10),
+            padding: const EdgeInsets.only(right: 10, top: 20),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -255,13 +287,13 @@ class _registerationState extends State<registeration> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.only(top: 10),
+            padding: const EdgeInsets.only(top: 20),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ElevatedButton(
                   onPressed: () {
-                    login(
+                    register (
                       emailController.text.toString(),
                       passwordController.text.toString(),
                       nameController.text.toString(),
@@ -295,25 +327,29 @@ class _registerationState extends State<registeration> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.only(left: 110, right: 90, top: 10),
+            padding: const EdgeInsets.only(left: 110, right: 90, top: 20),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text("Have an account?"),
                 InkWell(
-                    onTap: () {
-                      // Navigate to the second screen when text is clicked
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => Login()),
-                      );
-                    },
-                    child: Container(
-                        child: Text(
+                  onTap: () {
+                    // Navigate to the second screen when text is clicked
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => Login()),
+                    );
+                  },
+                  child: Container(
+                    child: Text(
                       'Log In',
                       style: TextStyle(
-                          color: Colors.black, fontWeight: FontWeight.bold),
-                    ))),
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),

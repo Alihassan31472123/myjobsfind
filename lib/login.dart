@@ -20,62 +20,95 @@ class Login extends StatefulWidget {
 }
 
 class _LoginState extends State<Login> {
-  bool _isChecked= false;  
+  bool _isChecked = false;
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
+  String emailErrorText = '';
+  String passwordErrorText = '';
+  bool showPassword = false;
 
+  void clearErrorMessages() {
+    setState(() {
+      emailErrorText = '';
+      passwordErrorText = '';
+    });
+  }
 
-
-
+  void togglePasswordVisibility() {
+    setState(() {
+      showPassword = !showPassword;
+    });
+  }
 
   
 
-  void login(String email , password) async {
-    
-    try{
-      
-      Response response = await post(
-        Uri.parse('https://www.myjobsfind.com/api/login'),
-        body: {
-          'email' : email,
-          'password' : password
-        }
-      );
+  bool isLoading = false; // Add this variable to track loading state
 
-      if(response.statusCode == 200){
-        
-        var data = jsonDecode(response.body.toString());
-        print(data);
-        print('Login successfully');
-      
-SharedPreferences prefs = await SharedPreferences.getInstance();
-  
-  prefs.setString('userEmail', email);
-   prefs.setString('token', data['token']);
+void login(String email, String password) async {
+  setState(() {
+    isLoading = true; // Show the circular progress indicator
+  });
 
-    String successMessage = "Login successfully"; // You can adjust this message
+  try {
+    Response response = await post(
+      Uri.parse('https://www.myjobsfind.com/api/login'),
+      body: {
+        'email': email,
+        'password': password,
+      },
+    );
+
+    if (response.statusCode == 200) {
+      // Login successful
+      var data = jsonDecode(response.body.toString());
+      print(data);
+      print('Login successfully');
+
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+
+      prefs.setString('userEmail', email);
+      prefs.setString('token', data['token']);
+
+      String successMessage = "Login successfully";
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(successMessage,),),
+        SnackBar(
+          content: Text(successMessage),
+          backgroundColor: Colors.orange,
+        ),
       );
 
+      // Navigate to the next screen
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => nextscreen()),
+      );
+    } else if (response.statusCode == 401) {
+      // Handle 401 unauthorized error
+      var errorData = jsonDecode(response.body);
+      Map<String, dynamic> message = errorData['message'] ?? {};
 
-  // Navigate to the next screen
-  Navigator.push(
-    context,
-    MaterialPageRoute(builder: (context) => nextscreen()),
-  );
-      }else {
-      // Registration failed, handle error
+      message.forEach((field, errorList) {
+        errorList.forEach((error) {
+          print('$field error: $error');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$field $error'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 5),
+            ),
+          );
+        });
+      });
+    } else {
+      // Handle other error cases
       var errorData = jsonDecode(response.body);
       String errorMessage = errorData['message']; // General error message
       Map<String, dynamic> errors = errorData['errors']; // Error details
 
       // Display general error message
-     
 
-      // Display specific error message for 'name' field
-     
-       if (errors.containsKey('email')) {
+      // Display specific error message for 'email' field
+      if (errors.containsKey('email')) {
         String emailError = errors['email'][0]; // First error message for 'email'
         print('Email error: $emailError');
         ScaffoldMessenger.of(context).showSnackBar(
@@ -91,13 +124,17 @@ SharedPreferences prefs = await SharedPreferences.getInstance();
           SnackBar(content: Text(passwordError)),
         );
       }
-
     }
-
-    }catch(e){
-      print(e.toString());
-    }
+  } catch (e) {
+    print(e.toString());
+  } finally {
+    setState(() {
+      isLoading = false; // Hide the circular progress indicator
+    });
   }
+}
+
+
   @override
   Widget build(BuildContext context) {
 
@@ -108,90 +145,85 @@ SharedPreferences prefs = await SharedPreferences.getInstance();
           children: [
             
              Padding(
-               padding: const EdgeInsets.only(top: 150),
+               padding: const EdgeInsets.only(top: 120),
                child: Row(mainAxisAlignment: MainAxisAlignment.center,
                  children: [
                    Container(
-                          height: 50,
-                          width: 200,
+                          height: 45,
+                          width: 190,
+                           decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(50),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.5),
+                    spreadRadius: 1,
+                    blurRadius: 1,
+                    offset: Offset(0, 1),
+                  ),
+                ],
+              ),
                           child: Image.asset('images/job.png',fit: BoxFit.cover,),
                         ),
                  ],
                ),
              ),
-             Container(
-               height: 60,
-               
-               margin: const EdgeInsets.only(left: 25,right: 25,top: 40),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                
-                boxShadow: [BoxShadow(
-                  blurRadius: 3,
-                  spreadRadius: 3,
-                  
-                  color: Colors.grey.shade200,
-                )]
-              ),
-               child: TextField(
-                   controller: emailController,
-                  decoration: InputDecoration(
-                    
-                    
-                    hintText: 'Email ID',
-                    
-                    fillColor: Colors.white,
-                    filled: true,
-                    
-                    border: OutlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey.shade500,
+             SingleChildScrollView(
+               child: Column(
+                 children: [
+                  SizedBox(
+                    height: 30,
+                  ),
+                   Container(
+                    margin: EdgeInsets.only(left: 30,right: 30),
+                     child: TextField(
+                      
+                       controller: emailController,
+                       decoration: InputDecoration(
                         
-                      ),
-                      borderRadius: BorderRadius.circular(10),
-                     
-                      
-                    )
-                  ),
-                ),
+                         hintText: 'Email',
+                         fillColor: Colors.white,
+                         filled: true,
+                          prefixIcon: Icon(Icons.mail),
+                         
+                         errorText:
+                             emailErrorText.isNotEmpty ? emailErrorText : null,
+                       ),
+                     ),
+                   ),
+                   SizedBox(height: 30),
+                   
+                 ],
+               ),
              ),
-              Container(
-                height: 55,
-               margin: const EdgeInsets.only(left: 25,right: 25,top: 30),
-              decoration: BoxDecoration(
-                
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: [BoxShadow(
-                  blurRadius: 3,
-                  spreadRadius: 3,
-                  
-                  color: Colors.grey.shade300,
-                  
-                )]
-              ),
-               child: TextField(
-                   controller: passwordController,
-                  decoration: InputDecoration(
-                    
-                    
-                    hintText: 'Password',
-                    fillColor: Colors.white,
-                    filled: true,
-                    
-                    border: OutlineInputBorder(
-                      borderSide: const BorderSide(
-                        color: Colors.grey,
+            SingleChildScrollView(
+              child: Column(
+                children: [
+                  Container(
+                    margin: EdgeInsets.only(left: 30,right: 30),
+                    child: TextField(
+                      controller: passwordController,
+                      obscureText: !showPassword,
+                      decoration: InputDecoration(
+                        hintText: 'Password',
+                        fillColor: Colors.white,
+                        filled: true,
+                         prefixIcon: Icon(Icons.lock),
+                       errorText:
+                            passwordErrorText.isNotEmpty ? passwordErrorText : null,
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            showPassword ? Icons.visibility : Icons.visibility_off,
+                            color: Colors.grey,
+                          ),
+                          onPressed: togglePasswordVisibility,
+                        ),
                       ),
-                      borderRadius: BorderRadius.circular(10),
-                     
-                      
                     ),
-                    
-                  
                   ),
-                ),
-             ),
+                ],
+              ),
+            ),
               Padding(
                 padding: const EdgeInsets.only(right: 10,top: 20),
                 child: Row(mainAxisAlignment: MainAxisAlignment.end,
@@ -206,34 +238,36 @@ SharedPreferences prefs = await SharedPreferences.getInstance();
               padding: const EdgeInsets.only(top: 10),
               child: Row(mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  ElevatedButton(
-                    onPressed: () {
-                      login(emailController.text.toString(), passwordController.text.toString());
-                    },
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.all(0),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25),
-                      ),
-                      primary: Color(0xFF157EFB),
-                      onPrimary: Colors.white,
-                      elevation: 1,
-                    ),
-                    child: Container(
-                      height: 50,
-                      width: 300,
-                      child: const Center(
-                        child: Text(
-                          'Log In',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+                 ElevatedButton(
+  onPressed: isLoading
+      ? null // Disable the button when loading
+      : () {
+          login(emailController.text.toString(), passwordController.text.toString());
+        },
+  style: ElevatedButton.styleFrom(
+    padding: const EdgeInsets.all(0),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(25),
+    ),
+    primary: Color(0xFF157EFB),
+    onPrimary: Colors.white,
+    elevation: 1,
+  ),
+  child: Container(
+    height: 50,
+    width: 300,
+    child: const Center(
+      child: Text(
+        'Log In',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    ),
+  ),
+),
                 ],
               ),
             ),
@@ -250,7 +284,7 @@ SharedPreferences prefs = await SharedPreferences.getInstance();
               // Navigate to the second screen when text is clicked
               Navigator.push(
              context,
-             MaterialPageRoute(builder: (context) => registeration()),
+             MaterialPageRoute(builder: (context) => Registeration()),
               );
                      },
                    child: Container(child: Text('Sign Up',style: TextStyle(color: Colors.black,fontWeight: FontWeight.bold),))),
@@ -265,9 +299,4 @@ SharedPreferences prefs = await SharedPreferences.getInstance();
       ),
     );
   }
-}
-void main() {
-  runApp(MaterialApp(
-    home: Login(),
-  ));
 }

@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:myjobsfind2/mainscreen.dart';
+import 'package:myjobsfind2/profile.dart';
 import 'package:myjobsfind2/registeraion.dart';
-
-
-
+import 'errorexample.dart';
 import 'jobperv.dart';
 import 'login.dart';
+import 'logo.dart';
+import 'modals/searchdrop.dart';
 
 void main() {
   runApp(const MyApp());
@@ -32,7 +33,7 @@ class MyApp extends StatelessWidget {
         // is not restarted.
         primarySwatch: Colors.blue,
       ),
-      home:  nextscreen(),
+      home:  Login(),
     );
   }
 }
