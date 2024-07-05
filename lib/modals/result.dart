@@ -197,7 +197,7 @@ class SearchResultScreen extends StatelessWidget {
                                       },
                                       child: Text('Apply job'),
                                       style: ElevatedButton.styleFrom(
-                                        primary: Colors.blue,
+                                        backgroundColor: Colors.blue,
                                       ),
                                     ),
                                   ],

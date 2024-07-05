@@ -248,7 +248,7 @@ class JobDetailsScreen extends StatelessWidget {
                           },
                           child: Text('Apply'),
                           style: ElevatedButton.styleFrom(
-                            primary: Colors.blue,
+                            backgroundColor: Colors.blue,
                           ),
                         ),
                       ),

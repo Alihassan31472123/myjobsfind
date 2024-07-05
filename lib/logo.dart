@@ -420,7 +420,7 @@ class _logoState extends State<logo> {
                     } else {
                       final jobsData = snapshot.data;
                       return Scrollbar(
-                         isAlwaysShown: false, // Ensure the scrollbar is always visible
+                         thumbVisibility: false, // Ensure the scrollbar is always visible
                   radius:  Radius.circular(10.0), // Customize the scrollbar radius
                   thickness: 6.0,
                   
@@ -577,7 +577,7 @@ class _logoState extends State<logo> {
                       },
                       child: const Text('Apply'),
                       style: ElevatedButton.styleFrom(
-                        primary: Colors.blue,
+                        backgroundColor: Colors.blue,
                       ),
                     ),
                   ],

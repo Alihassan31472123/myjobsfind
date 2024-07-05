@@ -304,8 +304,8 @@ void register(
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(25),
                     ),
-                    primary: Color(0xFF157EFB),
-                    onPrimary: Colors.white,
+                    backgroundColor: Color(0xFF157EFB),
+                    foregroundColor: Colors.white,
                     elevation: 1,
                   ),
                   child: Container(

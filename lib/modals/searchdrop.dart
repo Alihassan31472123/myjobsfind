@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_searchable_dropdown/flutter_searchable_dropdown.dart';
 import 'package:myjobsfind2/modals/result.dart';
-
 import 'CountryModal.dart';
 import 'jobtypemodaldart.dart';
 
